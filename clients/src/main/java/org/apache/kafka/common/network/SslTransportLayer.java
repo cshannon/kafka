@@ -26,6 +26,8 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.CancelledKeyException;
 
 import java.security.Principal;
+import java.security.cert.Certificate;
+
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLEngineResult.HandshakeStatus;
@@ -84,7 +86,7 @@ public class SslTransportLayer implements TransportLayer {
         this.netReadBuffer = ByteBuffer.allocate(netReadBufferSize());
         this.netWriteBuffer = ByteBuffer.allocate(netWriteBufferSize());
         this.appReadBuffer = ByteBuffer.allocate(applicationBufferSize());
-        
+
         //clear & set netRead & netWrite buffers
         netWriteBuffer.position(0);
         netWriteBuffer.limit(0);
@@ -638,6 +640,7 @@ public class SslTransportLayer implements TransportLayer {
      * SSLSession's peerPrincipal for the remote host.
      * @return Principal
      */
+    @Override
     public Principal peerPrincipal() throws IOException {
         try {
             return sslEngine.getSession().getPeerPrincipal();
@@ -645,6 +648,10 @@ public class SslTransportLayer implements TransportLayer {
             log.debug("SSL peer is not authenticated, returning ANONYMOUS instead");
             return KafkaPrincipal.ANONYMOUS;
         }
+    }
+
+    public Certificate[] getPeerCertificates() throws SSLPeerUnverifiedException {
+        return sslEngine.getSession().getPeerCertificates();
     }
 
     /**
@@ -711,7 +718,7 @@ public class SslTransportLayer implements TransportLayer {
     protected int netReadBufferSize() {
         return sslEngine.getSession().getPacketBufferSize();
     }
-    
+
     protected int netWriteBufferSize() {
         return sslEngine.getSession().getPacketBufferSize();
     }
@@ -719,7 +726,7 @@ public class SslTransportLayer implements TransportLayer {
     protected int applicationBufferSize() {
         return sslEngine.getSession().getApplicationBufferSize();
     }
-    
+
     protected ByteBuffer netReadBuffer() {
         return netReadBuffer;
     }

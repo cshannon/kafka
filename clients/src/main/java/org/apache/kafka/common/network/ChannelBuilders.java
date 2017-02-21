@@ -67,7 +67,8 @@ public class ChannelBuilders {
                                                       SecurityProtocol securityProtocol,
                                                       AbstractConfig config,
                                                       CredentialCache credentialCache) {
-        return create(securityProtocol, Mode.SERVER, JaasContext.Type.SERVER, config, listenerName, null,
+        return create(securityProtocol, Mode.SERVER,
+                securityProtocol == SecurityProtocol.SSL ? JaasContext.Type.SSL_SERVER : JaasContext.Type.SERVER, config, listenerName, null,
                 true, credentialCache);
     }
 
@@ -86,10 +87,17 @@ public class ChannelBuilders {
             configs = config.valuesWithPrefixOverride(listenerName.configPrefix());
 
         ChannelBuilder channelBuilder;
-        switch (securityProtocol) {
+            switch (securityProtocol) {
             case SSL:
                 requireNonNullMode(mode, securityProtocol);
-                channelBuilder = new SslChannelBuilder(mode);
+                // optional
+                JaasContext sslJaasContext = null;
+                try {
+                    sslJaasContext = JaasContext.load(contextType, listenerName, configs);
+                } catch (Exception e) {
+                    //e.printStackTrace();
+                }
+                channelBuilder = new SslChannelBuilder(mode, sslJaasContext);
                 break;
             case SASL_SSL:
             case SASL_PLAINTEXT:
@@ -126,7 +134,8 @@ public class ChannelBuilders {
     }
 
     private static void requireNonNullMode(Mode mode, SecurityProtocol securityProtocol) {
-        if (mode == null)
+
+    	if (mode == null)
             throw new IllegalArgumentException("`mode` must be non-null if `securityProtocol` is `" + securityProtocol + "`");
     }
 

@@ -51,7 +51,7 @@ public abstract class AbstractLogin implements Login {
 
     @Override
     public LoginContext login() throws LoginException {
-        loginContext = new LoginContext(jaasContext.name(), null, new LoginCallbackHandler(), jaasContext.configuration());
+        loginContext = new LoginContext(jaasContext.name(), null, getCallbackHandler(), jaasContext.configuration());
         loginContext.login();
         log.info("Successfully logged in.");
         return loginContext;
@@ -60,6 +60,10 @@ public abstract class AbstractLogin implements Login {
     @Override
     public Subject subject() {
         return loginContext.getSubject();
+    }
+
+    protected CallbackHandler getCallbackHandler() {
+        return new LoginCallbackHandler();
     }
 
     protected JaasContext jaasContext() {
