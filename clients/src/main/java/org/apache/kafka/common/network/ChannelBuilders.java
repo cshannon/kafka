@@ -21,10 +21,13 @@ import org.apache.kafka.common.security.auth.DefaultPrincipalBuilder;
 import org.apache.kafka.common.security.auth.PrincipalBuilder;
 import org.apache.kafka.common.security.authenticator.CredentialCache;
 import org.apache.kafka.common.utils.Utils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 
 public class ChannelBuilders {
+    private static final Logger log = LoggerFactory.getLogger(ChannelBuilders.class);
 
     private ChannelBuilders() { }
 
@@ -67,7 +70,8 @@ public class ChannelBuilders {
                                                       SecurityProtocol securityProtocol,
                                                       AbstractConfig config,
                                                       CredentialCache credentialCache) {
-        return create(securityProtocol, Mode.SERVER, JaasContext.Type.SERVER, config, listenerName, null,
+        return create(securityProtocol, Mode.SERVER,
+                securityProtocol == SecurityProtocol.SSL ? JaasContext.Type.SSL_SERVER : JaasContext.Type.SERVER, config, listenerName, null,
                 true, credentialCache);
     }
 
@@ -89,7 +93,14 @@ public class ChannelBuilders {
         switch (securityProtocol) {
             case SSL:
                 requireNonNullMode(mode, securityProtocol);
-                channelBuilder = new SslChannelBuilder(mode);
+                // optional
+                JaasContext sslJaasContext = null;
+                try {
+                    sslJaasContext = JaasContext.load(contextType, listenerName, configs);
+                } catch (Exception e) {
+                    log.debug("Could not load SSL JaasContext", e);
+                }
+                channelBuilder = new SslChannelBuilder(mode, sslJaasContext);
                 break;
             case SASL_SSL:
             case SASL_PLAINTEXT:
@@ -126,7 +137,8 @@ public class ChannelBuilders {
     }
 
     private static void requireNonNullMode(Mode mode, SecurityProtocol securityProtocol) {
-        if (mode == null)
+
+    	if (mode == null)
             throw new IllegalArgumentException("`mode` must be non-null if `securityProtocol` is `" + securityProtocol + "`");
     }
 

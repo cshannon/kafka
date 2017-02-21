@@ -36,6 +36,7 @@ public class JaasContext {
 
     private static final Logger LOG = LoggerFactory.getLogger(JaasUtils.class);
 
+    private static final String GLOBAL_CONTEXT_NAME_SSL_SERVER = "SslKafkaServer";
     private static final String GLOBAL_CONTEXT_NAME_SERVER = "KafkaServer";
     private static final String GLOBAL_CONTEXT_NAME_CLIENT = "KafkaClient";
 
@@ -72,6 +73,12 @@ public class JaasContext {
                     throw new IllegalArgumentException("listenerName should not be null for SERVER");
                 globalContextName = GLOBAL_CONTEXT_NAME_SERVER;
                 listenerContextName = listenerName.value().toLowerCase(Locale.ROOT) + "." + GLOBAL_CONTEXT_NAME_SERVER;
+                break;
+            case SSL_SERVER:
+                if (listenerName == null)
+                    throw new IllegalArgumentException("listenerName should not be null for SSL_SERVER");
+                globalContextName = GLOBAL_CONTEXT_NAME_SSL_SERVER;
+                listenerContextName = listenerName.value().toLowerCase(Locale.ROOT) + "." + GLOBAL_CONTEXT_NAME_SSL_SERVER;
                 break;
             default:
                 throw new IllegalArgumentException("Unexpected context type " + contextType);
@@ -139,7 +146,7 @@ public class JaasContext {
      * The type of the SASL login context, it should be SERVER for the broker and CLIENT for the clients (consumer, producer,
      * etc.). This is used to validate behaviour (e.g. some functionality is only available in the broker or clients).
      */
-    public enum Type { CLIENT, SERVER; }
+    public enum Type { CLIENT, SERVER, SSL_SERVER;}
 
     private final String name;
     private final Type type;

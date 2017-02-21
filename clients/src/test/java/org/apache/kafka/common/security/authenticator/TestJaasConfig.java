@@ -30,6 +30,7 @@ public class TestJaasConfig extends Configuration {
 
     static final String LOGIN_CONTEXT_CLIENT = "KafkaClient";
     static final String LOGIN_CONTEXT_SERVER = "KafkaServer";
+    static final String LOGIN_CONTEXT_SSL_SERVER = "SslKafkaServer";
 
     static final String USERNAME = "myuser";
     static final String PASSWORD = "mypassword";
@@ -42,6 +43,14 @@ public class TestJaasConfig extends Configuration {
         for (String mechanism : serverMechanisms) {
             config.addEntry(LOGIN_CONTEXT_SERVER, loginModule(mechanism), defaultServerOptions(mechanism));
         }
+        Configuration.setConfiguration(config);
+        return config;
+    }
+
+
+    public static TestJaasConfig createSslConfiguration() {
+        TestJaasConfig config = new TestJaasConfig();
+        config.addEntry(LOGIN_CONTEXT_SSL_SERVER, TestSslLoginModule.class.getName(), defaultSslServerOptions());
         Configuration.setConfiguration(config);
         return config;
     }
@@ -113,6 +122,11 @@ public class TestJaasConfig extends Configuration {
                 if (!ScramMechanism.isScram(mechanism))
                     throw new IllegalArgumentException("Unsupported mechanism " + mechanism);
         }
+        return options;
+    }
+
+    public static Map<String, Object> defaultSslServerOptions() {
+        Map<String, Object> options = new HashMap<>();
         return options;
     }
 }

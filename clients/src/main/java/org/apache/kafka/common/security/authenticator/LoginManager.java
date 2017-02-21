@@ -19,6 +19,7 @@
 package org.apache.kafka.common.security.authenticator;
 
 import javax.security.auth.Subject;
+import javax.security.auth.callback.CallbackHandler;
 import javax.security.auth.login.LoginException;
 
 import java.io.IOException;
@@ -28,6 +29,7 @@ import java.util.Map;
 
 import org.apache.kafka.common.config.SaslConfigs;
 import org.apache.kafka.common.config.types.Password;
+import org.apache.kafka.common.network.SslTransportLayer;
 import org.apache.kafka.common.security.JaasContext;
 import org.apache.kafka.common.security.auth.Login;
 import org.apache.kafka.common.security.kerberos.KerberosLogin;
@@ -48,6 +50,21 @@ public class LoginManager {
                          Password jaasConfigValue) throws IOException, LoginException {
         this.cacheKey = jaasConfigValue != null ? jaasConfigValue : jaasContext.name();
         login = hasKerberos ? new KerberosLogin() : new DefaultLogin();
+        login.configure(configs, jaasContext);
+        login.login();
+    }
+
+    private LoginManager(JaasContext jaasContext, final SslTransportLayer transportLayer, Map<String, ?> configs)
+            throws IOException, LoginException {
+        this.cacheKey = jaasContext.name();
+        login = new DefaultLogin() {
+
+            @Override
+            protected CallbackHandler getCallbackHandler() {
+                return new X509CallbackHandler(transportLayer);
+            }
+
+        };
         login.configure(configs, jaasContext);
         login.login();
     }
@@ -81,6 +98,18 @@ public class LoginManager {
                     loginManager = new LoginManager(jaasContext, hasKerberos, configs, jaasConfigValue);
                     STATIC_INSTANCES.put(jaasContext.name(), loginManager);
                 }
+            }
+            return loginManager.acquire();
+        }
+    }
+
+    public static LoginManager acquireLoginManager(JaasContext jaasContext, SslTransportLayer transportLayer,
+            Map<String, ?> configs) throws IOException, LoginException {
+        synchronized (LoginManager.class) {
+            LoginManager loginManager = STATIC_INSTANCES.get(jaasContext.name());
+            if (loginManager == null) {
+                loginManager = new LoginManager(jaasContext, transportLayer, configs);
+                STATIC_INSTANCES.put(jaasContext.name(), loginManager);
             }
             return loginManager.acquire();
         }
